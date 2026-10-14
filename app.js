@@ -39,6 +39,9 @@ const input = document.getElementById("city-input");
 const button = form.querySelector("button");
 const statusEl = document.getElementById("status");
 const resultEl = document.getElementById("result");
+const candidatesEl = document.getElementById("candidates");
+const candidatesTitleEl = document.getElementById("candidates-title");
+const candidateListEl = document.getElementById("candidate-list");
 
 let chart = null;
 
@@ -103,10 +106,10 @@ function findAlias(name) {
   return null;
 }
 
-async function searchPlace(query, countryCode) {
+async function searchPlaces(query, countryCode) {
   const params = new URLSearchParams({
     name: query,
-    count: "1",
+    count: "10",
     language: "ja",
     format: "json",
   });
@@ -114,17 +117,26 @@ async function searchPlace(query, countryCode) {
     params.set("countryCode", countryCode);
   }
   const data = await fetchJson(`${GEOCODING_URL}?${params}`);
-  return data.results && data.results.length > 0 ? data.results[0] : null;
+  return data.results || [];
 }
 
 async function geocode(name) {
   const alias = findAlias(name);
-  const place = (alias && await searchPlace(alias.query, alias.countryCode))
-    || await searchPlace(name);
-  if (!place) {
+  let places = alias ? await searchPlaces(alias.query, alias.countryCode) : [];
+  if (places.length === 0) {
+    places = await searchPlaces(name);
+  }
+  if (places.length === 0) {
     throw new Error(`「${name}」が見つかりませんでした。ローマ字や英語(例:Kyoto、Paris)で入力してみてください。`);
   }
-  return place;
+  return places;
+}
+
+// 候補一覧と現在の気温カードに表示する地域名(例:「東京都・日本」)
+function placeRegion(place) {
+  const parts = [place.admin1, place.admin2, place.country]
+    .filter((part) => part && part !== place.name);
+  return [...new Set(parts)].join("・");
 }
 
 async function fetchForecast(lat, lon) {
@@ -159,8 +171,7 @@ function renderCurrent(place, forecast) {
   const { month, day, time } = parseLocalTime(forecast.current.time);
 
   document.getElementById("city-name").textContent = place.name;
-  document.getElementById("city-detail").textContent =
-    [place.admin1, place.country].filter(Boolean).join("・");
+  document.getElementById("city-detail").textContent = placeRegion(place);
   document.getElementById("weather-icon").textContent = icon;
   document.getElementById("current-temp").textContent = `${temp.toFixed(1)}${unit}`;
   document.getElementById("weather-text").textContent = text;
@@ -235,7 +246,60 @@ function renderChart(forecast) {
   });
 }
 
-async function showWeather(cityName) {
+function handleError(err) {
+  const message = err instanceof TypeError
+    ? "通信に失敗しました。インターネット接続を確認してください。"
+    : err.message;
+  setStatus(message, true);
+}
+
+async function showPlaceWeather(place) {
+  setStatus(`${place.name}の天気を取得しています…`);
+  const forecast = await fetchForecast(place.latitude, place.longitude);
+  renderCurrent(place, forecast);
+  // 非表示のままだとグラフの大きさが正しく計算されないため、先に表示する
+  resultEl.hidden = false;
+  renderChart(forecast);
+  setStatus("");
+}
+
+function renderCandidates(name, places) {
+  candidatesTitleEl.textContent =
+    `「${name}」の候補が${places.length}件見つかりました。地域を選んでください。`;
+  candidateListEl.replaceChildren(...places.map((place) => {
+    const item = document.createElement("li");
+    const choice = document.createElement("button");
+    choice.type = "button";
+    choice.className = "candidate";
+    choice.setAttribute("aria-pressed", "false");
+
+    const placeName = document.createElement("span");
+    placeName.className = "candidate-name";
+    placeName.textContent = place.name;
+    const region = document.createElement("span");
+    region.className = "candidate-region";
+    region.textContent = placeRegion(place);
+    choice.append(placeName, region);
+
+    choice.addEventListener("click", async () => {
+      for (const other of candidateListEl.querySelectorAll(".candidate")) {
+        other.setAttribute("aria-pressed", String(other === choice));
+      }
+      try {
+        await showPlaceWeather(place);
+      } catch (err) {
+        handleError(err);
+      }
+    });
+
+    item.append(choice);
+    return item;
+  }));
+  candidatesEl.hidden = false;
+}
+
+// autoSelect が true のときは候補が複数あっても1件目の天気をそのまま表示する(初期表示用)
+async function search(cityName, { autoSelect = false } = {}) {
   const name = cityName.trim();
   if (!name) {
     setStatus("都市名を入力してください。", true);
@@ -243,20 +307,21 @@ async function showWeather(cityName) {
   }
 
   button.disabled = true;
-  setStatus(`「${name}」の天気を取得しています…`);
+  candidatesEl.hidden = true;
+  setStatus(`「${name}」を検索しています…`);
 
   try {
-    const place = await geocode(name);
-    const forecast = await fetchForecast(place.latitude, place.longitude);
-    renderCurrent(place, forecast);
-    renderChart(forecast);
-    resultEl.hidden = false;
-    setStatus("");
+    const places = await geocode(name);
+    if (places.length === 1 || autoSelect) {
+      await showPlaceWeather(places[0]);
+    } else {
+      resultEl.hidden = true;
+      renderCandidates(name, places);
+      setStatus("");
+    }
   } catch (err) {
-    const message = err instanceof TypeError
-      ? "通信に失敗しました。インターネット接続を確認してください。"
-      : err.message;
-    setStatus(message, true);
+    resultEl.hidden = true;
+    handleError(err);
   } finally {
     button.disabled = false;
   }
@@ -264,11 +329,11 @@ async function showWeather(cityName) {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
-  showWeather(input.value);
+  search(input.value);
 });
 
 if (typeof Chart === "undefined") {
   setStatus("グラフ用ライブラリ(Chart.js)を読み込めませんでした。インターネット接続を確認してください。", true);
 } else {
-  showWeather(DEFAULT_CITY);
+  search(DEFAULT_CITY, { autoSelect: true });
 }
