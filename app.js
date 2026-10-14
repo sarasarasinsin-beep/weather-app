@@ -55,18 +55,76 @@ async function fetchJson(url) {
   return res.json();
 }
 
-async function geocode(name) {
+// Open-Meteo Geocoding APIは日本語の都市名ではヒットしないことが多いため、
+// よく使われる都市名は英語名と国コードに置き換えて検索する
+const CITY_ALIASES = {
+  JP: {
+    札幌: "Sapporo", 函館: "Hakodate", 旭川: "Asahikawa", 小樽: "Otaru", 釧路: "Kushiro",
+    帯広: "Obihiro", 青森: "Aomori", 八戸: "Hachinohe", 盛岡: "Morioka", 仙台: "Sendai",
+    秋田: "Akita", 山形: "Yamagata", 福島: "Fukushima", 郡山: "Koriyama", いわき: "Iwaki",
+    水戸: "Mito", つくば: "Tsukuba", 宇都宮: "Utsunomiya", 日光: "Nikko", 前橋: "Maebashi",
+    高崎: "Takasaki", さいたま: "Saitama", 川越: "Kawagoe", 千葉: "Chiba", 船橋: "Funabashi",
+    東京: "Tokyo", 新宿: "Shinjuku", 渋谷: "Shibuya", 八王子: "Hachioji", 横浜: "Yokohama",
+    川崎: "Kawasaki", 相模原: "Sagamihara", 鎌倉: "Kamakura", 横須賀: "Yokosuka", 箱根: "Hakone",
+    新潟: "Niigata", 長岡: "Nagaoka", 富山: "Toyama", 金沢: "Kanazawa", 福井: "Fukui",
+    甲府: "Kofu", 長野: "Nagano", 松本: "Matsumoto", 軽井沢: "Karuizawa", 岐阜: "Gifu",
+    高山: "Takayama", 静岡: "Shizuoka", 浜松: "Hamamatsu", 熱海: "Atami", 名古屋: "Nagoya",
+    豊橋: "Toyohashi", 豊田: "Toyota", 岡崎: "Okazaki", 津: "Tsu", 四日市: "Yokkaichi",
+    伊勢: "Ise", 大津: "Otsu", 京都: "Kyoto", 大阪: "Osaka", 堺: "Sakai",
+    神戸: "Kobe", 姫路: "Himeji", 西宮: "Nishinomiya", 奈良: "Nara", 和歌山: "Wakayama",
+    鳥取: "Tottori", 松江: "Matsue", 岡山: "Okayama", 倉敷: "Kurashiki", 広島: "Hiroshima",
+    福山: "Fukuyama", 呉: "Kure", 山口: "Yamaguchi", 下関: "Shimonoseki", 徳島: "Tokushima",
+    高松: "Takamatsu", 松山: "Matsuyama", 高知: "Kochi", 福岡: "Fukuoka", 北九州: "Kitakyushu",
+    久留米: "Kurume", 佐賀: "Saga", 長崎: "Nagasaki", 佐世保: "Sasebo", 熊本: "Kumamoto",
+    大分: "Oita", 別府: "Beppu", 宮崎: "Miyazaki", 鹿児島: "Kagoshima", 那覇: "Naha",
+    沖縄: "Okinawa", 石垣: "Ishigaki",
+  },
+  US: { ニューヨーク: "New York", ロサンゼルス: "Los Angeles", サンフランシスコ: "San Francisco", ホノルル: "Honolulu" },
+  GB: { ロンドン: "London" },
+  FR: { パリ: "Paris" },
+  KR: { ソウル: "Seoul" },
+  CN: { 北京: "Beijing", 上海: "Shanghai" },
+  TW: { 台北: "Taipei" },
+  TH: { バンコク: "Bangkok" },
+  SG: { シンガポール: "Singapore" },
+  AU: { シドニー: "Sydney" },
+};
+
+function findAlias(name) {
+  // 「京都市」「東京都」のような末尾の「市・都・府・県」は取り除いて照合する
+  const candidates = [name, name.replace(/[市都府県]$/, "")];
+  for (const [countryCode, cities] of Object.entries(CITY_ALIASES)) {
+    for (const candidate of candidates) {
+      if (cities[candidate]) {
+        return { query: cities[candidate], countryCode };
+      }
+    }
+  }
+  return null;
+}
+
+async function searchPlace(query, countryCode) {
   const params = new URLSearchParams({
-    name,
+    name: query,
     count: "1",
     language: "ja",
     format: "json",
   });
-  const data = await fetchJson(`${GEOCODING_URL}?${params}`);
-  if (!data.results || data.results.length === 0) {
-    throw new Error(`「${name}」が見つかりませんでした。別の都市名で試してください。`);
+  if (countryCode) {
+    params.set("countryCode", countryCode);
   }
-  return data.results[0];
+  const data = await fetchJson(`${GEOCODING_URL}?${params}`);
+  return data.results && data.results.length > 0 ? data.results[0] : null;
+}
+
+async function geocode(name) {
+  const alias = findAlias(name);
+  const place = (alias && await searchPlace(alias.query, alias.countryCode))
+    || await searchPlace(name);
+  if (!place) {
+    throw new Error(`「${name}」が見つかりませんでした。ローマ字や英語(例:Kyoto、Paris)で入力してみてください。`);
+  }
+  return place;
 }
 
 async function fetchForecast(lat, lon) {
