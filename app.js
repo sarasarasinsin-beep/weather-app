@@ -144,7 +144,7 @@ async function fetchForecast(lat, lon) {
     latitude: lat,
     longitude: lon,
     current: "temperature_2m,weather_code",
-    hourly: "temperature_2m",
+    hourly: "temperature_2m,precipitation_probability",
     forecast_hours: "48",
     timezone: "auto",
   });
@@ -177,18 +177,29 @@ function renderCurrent(place, forecast) {
   document.getElementById("weather-text").textContent = text;
   document.getElementById("updated-at").textContent =
     `${month}月${day}日 ${time} 時点(現地時刻)`;
+
+  // 降水確率は現在値がないため、時間ごとの予報の先頭(現在の時間帯)を使う
+  const precipEl = document.getElementById("current-precip");
+  const precip = forecast.hourly.precipitation_probability[0];
+  precipEl.replaceChildren("降水確率 ");
+  const precipValue = document.createElement("strong");
+  precipValue.textContent = precip === null ? "—" : `${precip}%`;
+  precipEl.append(precipValue);
 }
 
 function renderChart(forecast) {
   const times = forecast.hourly.time;
   const temps = forecast.hourly.temperature_2m;
+  const precips = forecast.hourly.precipitation_probability;
   const unit = forecast.hourly_units.temperature_2m;
 
   const valid = temps.filter((t) => t !== null);
   const max = Math.max(...valid);
   const min = Math.min(...valid);
+  const validPrecips = precips.filter((p) => p !== null);
+  const maxPrecip = validPrecips.length > 0 ? `${Math.max(...validPrecips)}%` : "—";
   document.getElementById("minmax").textContent =
-    `48時間の最高 ${max.toFixed(1)}${unit} / 最低 ${min.toFixed(1)}${unit}`;
+    `48時間の最高 ${max.toFixed(1)}${unit} / 最低 ${min.toFixed(1)}${unit} / 最大降水確率 ${maxPrecip}`;
 
   if (chart) {
     chart.destroy();
@@ -196,24 +207,36 @@ function renderChart(forecast) {
 
   const ctx = document.getElementById("temp-chart").getContext("2d");
   const gradient = ctx.createLinearGradient(0, 0, 0, 320);
-  gradient.addColorStop(0, "rgba(47, 128, 237, 0.35)");
-  gradient.addColorStop(1, "rgba(47, 128, 237, 0.02)");
+  gradient.addColorStop(0, "rgba(232, 89, 12, 0.25)");
+  gradient.addColorStop(1, "rgba(232, 89, 12, 0.02)");
 
   chart = new Chart(ctx, {
-    type: "line",
     data: {
       labels: times.map(formatChartLabel),
       datasets: [
         {
-          label: `気温(${unit})`,
+          type: "line",
+          label: "気温",
           data: temps,
-          borderColor: "#2f80ed",
+          yAxisID: "y",
+          borderColor: "#e8590c",
           backgroundColor: gradient,
           fill: true,
           tension: 0.35,
           pointRadius: 0,
           pointHoverRadius: 5,
           borderWidth: 2,
+          order: 0,
+        },
+        {
+          type: "bar",
+          label: "降水確率",
+          data: precips,
+          yAxisID: "precip",
+          backgroundColor: "rgba(47, 128, 237, 0.45)",
+          barPercentage: 1,
+          categoryPercentage: 0.9,
+          order: 1,
         },
       ],
     },
@@ -222,14 +245,18 @@ function renderChart(forecast) {
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: {
+          labels: { boxWidth: 12, boxHeight: 12 },
+        },
         tooltip: {
           callbacks: {
             title: (items) => {
               const { month, day, time } = parseLocalTime(times[items[0].dataIndex]);
               return `${month}月${day}日 ${time}`;
             },
-            label: (item) => `気温: ${item.parsed.y.toFixed(1)}${unit}`,
+            label: (item) => (item.dataset.yAxisID === "precip"
+              ? `降水確率: ${item.parsed.y}%`
+              : `気温: ${item.parsed.y.toFixed(1)}${unit}`),
           },
         },
       },
@@ -239,7 +266,15 @@ function renderChart(forecast) {
           ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 9 },
         },
         y: {
+          position: "left",
           ticks: { callback: (value) => `${value}${unit}` },
+        },
+        precip: {
+          position: "right",
+          min: 0,
+          max: 100,
+          grid: { drawOnChartArea: false },
+          ticks: { stepSize: 25, callback: (value) => `${value}%` },
         },
       },
     },

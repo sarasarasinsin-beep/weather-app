@@ -11,7 +11,7 @@
   <main class="container">
     <header>
       <h1>お天気チェッカー</h1>
-      <p class="subtitle">都市名を入力すると、現在の気温と48時間の気温の推移を表示します</p>
+      <p class="subtitle">都市名を入力すると、現在の気温と48時間の気温・降水確率の推移を表示します</p>
     </header>
 
     <form id="search-form" class="search" autocomplete="off">
@@ -37,13 +37,14 @@
           <span id="current-temp" class="temp"></span>
         </div>
         <p id="weather-text" class="weather-text"></p>
+        <p id="current-precip" class="precip"></p>
         <p id="updated-at" class="detail"></p>
       </div>
 
       <div class="card chart-card">
-        <h3>今後48時間の気温の推移</h3>
+        <h3>今後48時間の気温と降水確率</h3>
         <div class="chart-wrap">
-          <canvas id="temp-chart" aria-label="今後48時間の気温グラフ" role="img"></canvas>
+          <canvas id="temp-chart" aria-label="今後48時間の気温と降水確率のグラフ" role="img"></canvas>
         </div>
         <p id="minmax" class="detail"></p>
       </div>
