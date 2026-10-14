@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お天気チェッカー</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>お天気チェッカー</h1>
+      <p class="subtitle">都市名を入力すると、現在の気温と48時間の気温の推移を表示します</p>
+    </header>
+
+    <form id="search-form" class="search" autocomplete="off">
+      <input id="city-input" type="text" placeholder="都市名を入力(例:京都、東京、Paris)" value="京都" aria-label="都市名" required>
+      <button type="submit">検索</button>
+    </form>
+
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+
+    <section id="result" class="result" hidden>
+      <div class="card current">
+        <div class="location">
+          <h2 id="city-name"></h2>
+          <p id="city-detail" class="detail"></p>
+        </div>
+        <div class="now">
+          <span id="weather-icon" class="icon" aria-hidden="true"></span>
+          <span id="current-temp" class="temp"></span>
+        </div>
+        <p id="weather-text" class="weather-text"></p>
+        <p id="updated-at" class="detail"></p>
+      </div>
+
+      <div class="card chart-card">
+        <h3>今後48時間の気温の推移</h3>
+        <div class="chart-wrap">
+          <canvas id="temp-chart" aria-label="今後48時間の気温グラフ" role="img"></canvas>
+        </div>
+        <p id="minmax" class="detail"></p>
+      </div>
+    </section>
+
+    <footer>
+      天気データ: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
