@@ -1,0 +1,180 @@
+:root {
+  --bg: #eef3f8;
+  --card: #ffffff;
+  --text: #1f2933;
+  --muted: #61707f;
+  --accent: #2f80ed;
+  --accent-dark: #1c64c8;
+  --error: #c0392b;
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.subtitle {
+  margin: 4px 0 20px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.search {
+  display: flex;
+  gap: 8px;
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  font-size: 1rem;
+  border: 1px solid #c9d3dd;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.search input:focus {
+  outline: 2px solid var(--accent);
+  border-color: transparent;
+}
+
+.search button {
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #fff;
+  background: var(--accent);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.search button:hover {
+  background: var(--accent-dark);
+}
+
+.search button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.status {
+  min-height: 1.6em;
+  margin: 12px 0;
+  color: var(--muted);
+}
+
+.status.error {
+  color: var(--error);
+  font-weight: bold;
+}
+
+.result {
+  display: grid;
+  gap: 16px;
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(31, 41, 51, 0.08);
+}
+
+.current .location h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.detail {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.now {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.temp {
+  font-size: 3.5rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.weather-text {
+  margin: 8px 0 0;
+  font-size: 1.1rem;
+}
+
+.chart-card h3 {
+  margin: 0 0 12px;
+  font-size: 1.1rem;
+}
+
+.chart-wrap {
+  position: relative;
+  height: 320px;
+}
+
+footer {
+  margin-top: 24px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+footer a {
+  color: var(--accent);
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.5rem;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .temp {
+    font-size: 2.8rem;
+  }
+
+  .icon {
+    font-size: 2.5rem;
+  }
+
+  .chart-wrap {
+    height: 260px;
+  }
+}
