@@ -55,14 +55,31 @@
         <h3>周辺の地図</h3>
         <div id="map" class="map" aria-label="検索した地点の周辺の地図"></div>
       </div>
+
+      <div class="card info-card">
+        <h3>この街について</h3>
+        <div id="wiki-summary"></div>
+
+        <h4>名産品・特産品</h4>
+        <div id="wiki-products"></div>
+
+        <h4>周辺の観光スポット</h4>
+        <div id="wiki-spots"></div>
+
+        <p class="detail wiki-credit">
+          出典: <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア日本語版</a>(<a href="https://creativecommons.org/licenses/by-sa/4.0/deed.ja" target="_blank" rel="noopener">CC BY-SA 4.0</a>)。観光スポットは周辺10km以内の記事を、よく読まれている順に表示しています。
+        </p>
+      </div>
     </section>
 
     <footer>
       天気データ: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
       / 地図: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>
+      / 街の情報: <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>
     </footer>
   </main>
 
+  <script src="wiki.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
