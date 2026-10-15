@@ -395,6 +395,8 @@ async function search(cityName, { autoSelect = false } = {}) {
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
+  // スマホで検索後もキーボードが出たままにならないよう、入力欄のフォーカスを外す
+  input.blur();
   search(input.value);
 });
 
