@@ -327,6 +327,7 @@ async function showPlaceWeather(place) {
   renderChart(forecast);
   renderMap(place);
   setStatus("");
+  showWikiInfo(place);
 }
 
 function renderCandidates(name, places) {
