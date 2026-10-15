@@ -5,6 +5,7 @@
 - 天気データ: [Open-Meteo Forecast API](https://open-meteo.com/en/docs)(APIキー不要)
 - 都市名 → 緯度経度の変換: [Open-Meteo Geocoding API](https://open-meteo.com/en/docs/geocoding-api)
 - グラフ: [Chart.js](https://www.chartjs.org/)
+- 地図: [Leaflet](https://leafletjs.com/) + [地理院タイル](https://maps.gsi.go.jp/development/ichiran.html)(国土地理院、APIキー不要)
 - HTML・CSS・JavaScriptのみで構成(ビルド不要)
 
 ## 使い方
@@ -23,6 +24,7 @@
 
 - **現在の気温カード**: 都市名、地域・国名、天気(アイコンと日本語)、現在の気温、現在の時間帯の降水確率、データの時刻(現地時刻)を表示します。
 - **気温と降水確率のグラフ**: 今後48時間の1時間ごとの気温をオレンジの折れ線(左の目盛り)、降水確率を青い棒グラフ(右の目盛り、0〜100%)で表示します。グラフにカーソルを合わせる(スマホではタップする)と、その時刻の気温と降水確率が表示されます。グラフの下には48時間の最高・最低気温と最大降水確率を表示します。
+- **周辺の地図**: 検索した地点にピンを立てた国土地理院の地図を表示します。拡大・縮小やドラッグで周辺を見られます。日本国内は詳しく表示されますが、海外は大まかな地図になります。
 
 スマートフォンの画面幅でも見やすいレイアウトになっています。
 
@@ -37,5 +39,5 @@ README.md    この説明書
 
 ## 注意事項
 
-- インターネット接続が必要です(Open-Meteo API と Chart.js の CDN にアクセスします)。
+- インターネット接続が必要です(Open-Meteo API、Chart.js・Leaflet の CDN、地理院タイルにアクセスします)。
 - Open-Meteo は非商用利用であれば無料・APIキー不要で使えます。詳しくは [Open-Meteo の利用条件](https://open-meteo.com/en/terms) を確認してください。

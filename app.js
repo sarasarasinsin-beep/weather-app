@@ -1,6 +1,7 @@
 const GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
 const DEFAULT_CITY = "京都";
+const GSI_TILE_URL = "https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png";
 
 // WMO天気コード → 日本語表記とアイコン
 const WEATHER_CODES = {
@@ -44,6 +45,8 @@ const candidatesTitleEl = document.getElementById("candidates-title");
 const candidateListEl = document.getElementById("candidate-list");
 
 let chart = null;
+let map = null;
+let marker = null;
 
 function setStatus(message, isError = false) {
   statusEl.textContent = message;
@@ -281,6 +284,33 @@ function renderChart(forecast) {
   });
 }
 
+function renderMap(place) {
+  // 地図ライブラリを読み込めなかった場合は、地図なしで天気だけ表示する
+  if (typeof L === "undefined") {
+    document.getElementById("map-card").hidden = true;
+    return;
+  }
+
+  const center = [place.latitude, place.longitude];
+  // 地理院タイルは国内は詳細だが、海外は大まかな地図しかないため広めの縮尺にする
+  const zoom = place.country_code === "JP" ? 12 : 8;
+
+  if (!map) {
+    map = L.map("map").setView(center, zoom);
+    L.tileLayer(GSI_TILE_URL, {
+      maxZoom: 18,
+      attribution: '<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">地理院タイル</a>',
+    }).addTo(map);
+    marker = L.marker(center).addTo(map);
+  } else {
+    // 非表示から戻ったときに地図の大きさを計算し直す
+    map.invalidateSize();
+    map.setView(center, zoom);
+    marker.setLatLng(center);
+  }
+  marker.bindPopup(place.name);
+}
+
 function handleError(err) {
   const message = err instanceof TypeError
     ? "通信に失敗しました。インターネット接続を確認してください。"
@@ -295,6 +325,7 @@ async function showPlaceWeather(place) {
   // 非表示のままだとグラフの大きさが正しく計算されないため、先に表示する
   resultEl.hidden = false;
   renderChart(forecast);
+  renderMap(place);
   setStatus("");
 }
 
