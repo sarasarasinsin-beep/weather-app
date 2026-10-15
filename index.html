@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>お天気チェッカー</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
   <main class="container">
@@ -48,10 +50,16 @@
         </div>
         <p id="minmax" class="detail"></p>
       </div>
+
+      <div id="map-card" class="card map-card">
+        <h3>周辺の地図</h3>
+        <div id="map" class="map" aria-label="検索した地点の周辺の地図"></div>
+      </div>
     </section>
 
     <footer>
       天気データ: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
+      / 地図: <a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院</a>
     </footer>
   </main>
 

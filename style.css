@@ -202,7 +202,8 @@ header h1 {
   font-size: 1.25rem;
 }
 
-.chart-card h3 {
+.chart-card h3,
+.map-card h3 {
   margin: 0 0 12px;
   font-size: 1.1rem;
 }
@@ -210,6 +211,13 @@ header h1 {
 .chart-wrap {
   position: relative;
   height: 320px;
+}
+
+.map {
+  height: 320px;
+  border-radius: 10px;
+  /* Leafletの地図部品が検索欄などより手前に出ないようにする */
+  z-index: 0;
 }
 
 footer {
@@ -241,6 +249,10 @@ footer a {
   }
 
   .chart-wrap {
+    height: 260px;
+  }
+
+  .map {
     height: 260px;
   }
 }
