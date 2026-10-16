@@ -78,11 +78,28 @@ function productNames(text) {
   return head.split("、").map((name) => name.trim()).filter(Boolean);
 }
 
+function hasMatchingSubsection(sections, index) {
+  const level = Number(sections[index].level);
+  for (const section of sections.slice(index + 1)) {
+    if (Number(section.level) <= level) {
+      return false;
+    }
+    if (PRODUCT_SECTION_PATTERN.test(section.line)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 async function fetchProducts(title) {
   const data = await wikiQuery({ action: "parse", page: title, prop: "sections", redirects: "1" });
-  const sections = (data.parse && data.parse.sections || [])
-    // 「T-1」のようにテンプレートから来た節は記事本体ではないので除く
-    .filter((section) => /^\d+$/.test(section.index) && PRODUCT_SECTION_PATTERN.test(section.line))
+  // 「T-1」のようにテンプレートから来た節は記事本体ではないので除く
+  const allSections = (data.parse && data.parse.sections || [])
+    .filter((section) => /^\d+$/.test(section.index));
+  const sections = allSections
+    .filter((section, i) => PRODUCT_SECTION_PATTERN.test(section.line)
+      // 「文化・名物」の下に「名産・特産」があるような場合は、文化全体ではなく小見出しの方だけを使う
+      && !hasMatchingSubsection(allSections, i))
     .slice(0, 3);
 
   const products = [];
