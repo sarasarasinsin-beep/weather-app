@@ -43,9 +43,11 @@ const resultEl = document.getElementById("result");
 const candidatesEl = document.getElementById("candidates");
 const candidatesTitleEl = document.getElementById("candidates-title");
 const candidateListEl = document.getElementById("candidate-list");
+const detailHoursEl = document.getElementById("detail-hours");
 
 let chart = null;
-let stripChart = null;
+let detailChart = null;
+let lastForecast = null;
 let map = null;
 let marker = null;
 
@@ -150,6 +152,8 @@ async function fetchForecast(lat, lon) {
     current: "temperature_2m,weather_code",
     hourly: "temperature_2m,precipitation_probability,precipitation",
     forecast_hours: "48",
+    minutely_15: "temperature_2m,precipitation",
+    forecast_minutely_15: "24",
     timezone: "auto",
   });
   return fetchJson(`${FORECAST_URL}?${params}`);
@@ -199,25 +203,30 @@ function renderCurrent(place, forecast) {
   rainEl.append(rainValue, "(1時間あたり)");
 }
 
-// 降水確率の帯に、6時間ごとの最大値を%で書き込む
+// 降水確率の帯に、区切り(48時間は6時間ごと、直近は1時間ごと)の最大値を%で書き込む。
+// labelGroups には各マスがどの区切りに入るかを表す値が入っていて、同じ値が続くマスを1つの区切りとする
 const probabilityLabels = {
   id: "probabilityLabels",
-  afterDatasetsDraw(stripChart) {
-    const probs = stripChart.data.datasets[0].probabilities;
-    const bars = stripChart.getDatasetMeta(0).data;
-    const { ctx } = stripChart;
+  afterDatasetsDraw(strip) {
+    const { probabilities: probs, labelGroups } = strip.data.datasets[0];
+    const bars = strip.getDatasetMeta(0).data;
+    const { ctx } = strip;
     ctx.save();
     ctx.font = "10px sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    for (let i = 0; i + 6 <= bars.length; i += 6) {
-      const block = probs.slice(i, i + 6).filter((p) => p !== null);
-      if (block.length === 0) continue;
-      const value = Math.max(...block);
-      const left = bars[i];
-      const right = bars[i + 5];
-      ctx.fillStyle = value >= 60 ? "#fff" : "#1f2933";
-      ctx.fillText(`${value}%`, (left.x + right.x) / 2, (left.y + left.base) / 2);
+    let start = 0;
+    for (let i = 1; i <= bars.length; i++) {
+      if (i < bars.length && labelGroups[i] === labelGroups[start]) continue;
+      const block = probs.slice(start, i).filter((p) => p !== null);
+      // 狭すぎる区切りには数字が入りきらないので書かない
+      const width = bars[i - 1].x - bars[start].x + bars[start].width;
+      if (block.length > 0 && width >= 28) {
+        const value = Math.max(...block);
+        ctx.fillStyle = value >= 60 ? "#fff" : "#1f2933";
+        ctx.fillText(`${value}%`, (bars[start].x + bars[i - 1].x) / 2, (bars[start].y + bars[start].base) / 2);
+      }
+      start = i;
     }
     ctx.restore();
   },
@@ -227,38 +236,20 @@ function probabilityColor(p) {
   return p === null ? "#f0f3f6" : `rgba(47, 128, 237, ${0.08 + (p / 100) * 0.85})`;
 }
 
-function renderChart(forecast) {
-  const times = forecast.hourly.time;
-  const temps = forecast.hourly.temperature_2m;
-  const probs = forecast.hourly.precipitation_probability;
-  const rains = forecast.hourly.precipitation;
-  const unit = forecast.hourly_units.temperature_2m;
-  const rainUnit = forecast.hourly_units.precipitation;
+function formatTooltipTime(iso) {
+  const { month, day, time } = parseLocalTime(iso);
+  return `${month}月${day}日 ${time}`;
+}
 
-  const valid = temps.filter((t) => t !== null);
-  const max = Math.max(...valid);
-  const min = Math.min(...valid);
-  const validProbs = probs.filter((p) => p !== null);
-  const maxProb = validProbs.length > 0 ? `${Math.max(...validProbs)}%` : "—";
-  const totalRain = rains.reduce((sum, r) => sum + (r || 0), 0);
-  const rainText = totalRain > 0
-    ? `合計降水量 ${totalRain.toFixed(1)}${rainUnit}`
-    : "雨の予報はありません";
-  document.getElementById("minmax").textContent =
-    `48時間の最高 ${max.toFixed(1)}${unit} / 最低 ${min.toFixed(1)}${unit} / 最大降水確率 ${maxProb} / ${rainText}`;
-
-  if (chart) {
-    chart.destroy();
-    stripChart.destroy();
-  }
-
-  const labels = times.map(formatChartLabel);
-  const ctx = document.getElementById("temp-chart").getContext("2d");
+// 気温の折れ線・降水量の棒グラフと、その下の降水確率の帯を描く
+function createWeatherChart({ chartId, stripId, times, labels, temps, rains, probs, unit, rainUnit, rainLabel, labelGroups }) {
+  const ctx = document.getElementById(chartId).getContext("2d");
   const gradient = ctx.createLinearGradient(0, 0, 0, 320);
   gradient.addColorStop(0, "rgba(232, 89, 12, 0.25)");
   gradient.addColorStop(1, "rgba(232, 89, 12, 0.02)");
 
-  chart = new Chart(ctx, {
+  let strip = null;
+  const main = new Chart(ctx, {
     data: {
       labels,
       datasets: [
@@ -278,7 +269,7 @@ function renderChart(forecast) {
         },
         {
           type: "bar",
-          label: "降水量",
+          label: rainLabel,
           data: rains,
           yAxisID: "rain",
           backgroundColor: "rgba(28, 100, 200, 0.8)",
@@ -293,19 +284,16 @@ function renderChart(forecast) {
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       // 下の帯の左右の余白をグラフの描画範囲に合わせ直す
-      onResize: () => requestAnimationFrame(() => stripChart && stripChart.update("none")),
+      onResize: () => requestAnimationFrame(() => strip && strip.update("none")),
       plugins: {
         legend: {
           labels: { boxWidth: 12, boxHeight: 12 },
         },
         tooltip: {
           callbacks: {
-            title: (items) => {
-              const { month, day, time } = parseLocalTime(times[items[0].dataIndex]);
-              return `${month}月${day}日 ${time}`;
-            },
+            title: (items) => formatTooltipTime(times[items[0].dataIndex]),
             label: (item) => (item.dataset.yAxisID === "rain"
-              ? `降水量: ${item.parsed.y.toFixed(1)}${rainUnit}`
+              ? `${rainLabel}: ${item.parsed.y.toFixed(1)}${rainUnit}`
               : `気温: ${item.parsed.y.toFixed(1)}${unit}`),
             footer: (items) => {
               const p = probs[items[0].dataIndex];
@@ -336,7 +324,7 @@ function renderChart(forecast) {
     },
   });
 
-  stripChart = new Chart(document.getElementById("probability-strip"), {
+  strip = new Chart(document.getElementById(stripId), {
     type: "bar",
     data: {
       labels,
@@ -344,6 +332,7 @@ function renderChart(forecast) {
         {
           data: probs.map(() => 1),
           probabilities: probs,
+          labelGroups,
           backgroundColor: probs.map(probabilityColor),
           barPercentage: 1,
           categoryPercentage: 1,
@@ -356,18 +345,15 @@ function renderChart(forecast) {
       animation: false,
       layout: {
         padding: () => ({
-          left: chart.chartArea ? chart.chartArea.left : 0,
-          right: chart.chartArea ? chart.width - chart.chartArea.right : 0,
+          left: main.chartArea ? main.chartArea.left : 0,
+          right: main.chartArea ? main.width - main.chartArea.right : 0,
         }),
       },
       plugins: {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            title: (items) => {
-              const { month, day, time } = parseLocalTime(times[items[0].dataIndex]);
-              return `${month}月${day}日 ${time}`;
-            },
+            title: (items) => formatTooltipTime(times[items[0].dataIndex]),
             label: (item) => {
               const p = probs[item.dataIndex];
               return `降水確率: ${p === null ? "—" : `${p}%`}`;
@@ -384,6 +370,102 @@ function renderChart(forecast) {
       },
     },
     plugins: [probabilityLabels],
+  });
+
+  return {
+    destroy() {
+      main.destroy();
+      strip.destroy();
+    },
+  };
+}
+
+function renderChart(forecast) {
+  const times = forecast.hourly.time;
+  const temps = forecast.hourly.temperature_2m;
+  const probs = forecast.hourly.precipitation_probability;
+  const rains = forecast.hourly.precipitation;
+  const unit = forecast.hourly_units.temperature_2m;
+  const rainUnit = forecast.hourly_units.precipitation;
+
+  const valid = temps.filter((t) => t !== null);
+  const max = Math.max(...valid);
+  const min = Math.min(...valid);
+  const validProbs = probs.filter((p) => p !== null);
+  const maxProb = validProbs.length > 0 ? `${Math.max(...validProbs)}%` : "—";
+  const totalRain = rains.reduce((sum, r) => sum + (r || 0), 0);
+  const rainText = totalRain > 0
+    ? `合計降水量 ${totalRain.toFixed(1)}${rainUnit}`
+    : "雨の予報はありません";
+  document.getElementById("minmax").textContent =
+    `48時間の最高 ${max.toFixed(1)}${unit} / 最低 ${min.toFixed(1)}${unit} / 最大降水確率 ${maxProb} / ${rainText}`;
+
+  if (chart) {
+    chart.destroy();
+  }
+  chart = createWeatherChart({
+    chartId: "temp-chart",
+    stripId: "probability-strip",
+    times,
+    labels: times.map(formatChartLabel),
+    temps,
+    rains,
+    probs,
+    unit,
+    rainUnit,
+    rainLabel: "降水量",
+    labelGroups: times.map((t, i) => Math.floor(i / 6)),
+  });
+}
+
+// 直近◯時間の拡大表示。15分ごとのデータを使い、降水確率は同じ時間帯の1時間ごとの値を使う
+function renderDetailChart() {
+  if (!lastForecast) return;
+  const forecast = lastForecast;
+  const hours = Number(detailHoursEl.value);
+  const noteEl = document.getElementById("detail-summary");
+
+  if (detailChart) {
+    detailChart.destroy();
+    detailChart = null;
+  }
+
+  const minutely = forecast.minutely_15;
+  if (!minutely || !minutely.time) {
+    noteEl.textContent = "この地点の15分ごとの予報を取得できませんでした。";
+    return;
+  }
+
+  // 現在時刻(15分単位)以降の、指定した時間分のデータを取り出す
+  const startIndex = Math.max(0, minutely.time.findIndex((t) => t >= forecast.current.time));
+  const end = startIndex + hours * 4 + 1;
+  const times = minutely.time.slice(startIndex, end);
+  const temps = minutely.temperature_2m.slice(startIndex, end);
+  const rains = minutely.precipitation.slice(startIndex, end);
+  const probs = times.map((t) => {
+    const index = forecast.hourly.time.indexOf(`${t.slice(0, 13)}:00`);
+    return index === -1 ? null : forecast.hourly.precipitation_probability[index];
+  });
+  const unit = forecast.minutely_15_units.temperature_2m;
+  const rainUnit = forecast.minutely_15_units.precipitation;
+
+  const totalRain = rains.reduce((sum, r) => sum + (r || 0), 0);
+  noteEl.textContent = totalRain > 0
+    ? `直近${hours}時間の合計降水量 ${totalRain.toFixed(1)}${rainUnit}`
+    : `直近${hours}時間は雨の予報はありません`;
+
+  detailChart = createWeatherChart({
+    chartId: "detail-chart",
+    stripId: "detail-strip",
+    times,
+    labels: times.map((t) => parseLocalTime(t).time),
+    temps,
+    rains,
+    probs,
+    unit,
+    rainUnit,
+    rainLabel: "降水量(15分ごと)",
+    labelGroups: times.map((t) => t.slice(0, 13)),
   });
 }
 
@@ -428,6 +510,8 @@ async function showPlaceWeather(place) {
   // 非表示のままだとグラフの大きさが正しく計算されないため、先に表示する
   resultEl.hidden = false;
   renderChart(forecast);
+  lastForecast = forecast;
+  renderDetailChart();
   renderMap(place);
   setStatus("");
   showWikiInfo(place);
@@ -496,6 +580,8 @@ async function search(cityName, { autoSelect = false } = {}) {
     button.disabled = false;
   }
 }
+
+detailHoursEl.addEventListener("change", renderDetailChart);
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();

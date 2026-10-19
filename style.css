@@ -214,6 +214,36 @@ header h1 {
   height: 320px;
 }
 
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.card-header h3 {
+  margin: 0;
+}
+
+.card-header select {
+  padding: 6px 10px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid #c9d3dd;
+  border-radius: 8px;
+}
+
+.detail-chart-wrap {
+  height: 240px;
+}
+
+/* 直近の帯は時刻が1行なので低くてよい */
+.strip-wrap.detail-strip-wrap {
+  height: 60px;
+}
+
 .strip-wrap {
   position: relative;
   /* 帯と、2行になる時刻の目盛り(「0時」と日付)が収まる高さ */
@@ -306,6 +336,10 @@ footer a {
 
   .chart-wrap {
     height: 260px;
+  }
+
+  .detail-chart-wrap {
+    height: 220px;
   }
 
   .map {
