@@ -214,8 +214,10 @@ header h1 {
   height: 320px;
 }
 
-.rain-chart-wrap {
-  height: 200px;
+.strip-wrap {
+  position: relative;
+  /* 帯と、2行になる時刻の目盛り(「0時」と日付)が収まる高さ */
+  height: 76px;
 }
 
 .map {
@@ -304,10 +306,6 @@ footer a {
 
   .chart-wrap {
     height: 260px;
-  }
-
-  .rain-chart-wrap {
-    height: 180px;
   }
 
   .map {
