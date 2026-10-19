@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>お天気チェッカー</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=11">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
@@ -45,19 +45,15 @@
       </div>
 
       <div class="card chart-card">
-        <h3>今後48時間の気温と降水確率</h3>
+        <h3>今後48時間の気温・降水量・降水確率</h3>
         <div class="chart-wrap">
-          <canvas id="temp-chart" aria-label="今後48時間の気温と降水確率のグラフ" role="img"></canvas>
+          <canvas id="temp-chart" aria-label="今後48時間の気温と降水量のグラフ" role="img"></canvas>
         </div>
+        <div class="strip-wrap">
+          <canvas id="probability-strip" aria-label="今後48時間の降水確率の帯" role="img"></canvas>
+        </div>
+        <p class="detail">下の帯:降水確率(青が濃いほど高い・数字は6時間ごとの最大)</p>
         <p id="minmax" class="detail"></p>
-      </div>
-
-      <div class="card chart-card">
-        <h3>今後48時間の降水量</h3>
-        <div class="chart-wrap rain-chart-wrap">
-          <canvas id="rain-chart" aria-label="今後48時間の1時間ごとの降水量のグラフ" role="img"></canvas>
-        </div>
-        <p id="rain-summary" class="detail"></p>
       </div>
 
       <div id="map-card" class="card map-card">
@@ -88,7 +84,8 @@
     </footer>
   </main>
 
-  <script src="wiki.js"></script>
-  <script src="app.js"></script>
+  <!-- ファイルを更新したら ?v= の数字を上げる(ブラウザが古いファイルを使い続けないようにするため) -->
+  <script src="wiki.js?v=11"></script>
+  <script src="app.js?v=11"></script>
 </body>
 </html>
