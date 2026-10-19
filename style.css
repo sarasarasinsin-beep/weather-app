@@ -214,6 +214,10 @@ header h1 {
   height: 320px;
 }
 
+.rain-chart-wrap {
+  height: 200px;
+}
+
 .map {
   height: 320px;
   border-radius: 10px;
@@ -300,6 +304,10 @@ footer a {
 
   .chart-wrap {
     height: 260px;
+  }
+
+  .rain-chart-wrap {
+    height: 180px;
   }
 
   .map {
