@@ -48,3 +48,7 @@ README.md    この説明書
 - インターネット接続が必要です(Open-Meteo API、Chart.js・Leaflet の CDN、地理院タイル、ウィキペディアにアクセスします)。
 - 「この街について」の文章はウィキペディアの記事から取得しています(CC BY-SA 4.0)。記事の書き方によっては、名産品がうまく取り出せなかったり、観光スポットに関係の薄い場所が混ざったりします。
 - Open-Meteo は非商用利用であれば無料・APIキー不要で使えます。詳しくは [Open-Meteo の利用条件](https://open-meteo.com/en/terms) を確認してください。
+
+## 開発用の設定(Claude Code)
+
+- `.claude/settings.json` と `.claude/hooks/confirm-push.sh`:Claude Code が `git push` を実行する直前に、プッシュされるコミット・変更ファイル・差分(長い場合は先頭4000文字)を表示し、承認を求めるフックです。承認しなければプッシュは実行されません。
