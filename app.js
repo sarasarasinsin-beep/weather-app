@@ -45,6 +45,7 @@ const candidatesTitleEl = document.getElementById("candidates-title");
 const candidateListEl = document.getElementById("candidate-list");
 
 let chart = null;
+let rainChart = null;
 let map = null;
 let marker = null;
 
@@ -147,7 +148,7 @@ async function fetchForecast(lat, lon) {
     latitude: lat,
     longitude: lon,
     current: "temperature_2m,weather_code",
-    hourly: "temperature_2m,precipitation_probability",
+    hourly: "temperature_2m,precipitation_probability,precipitation",
     forecast_hours: "48",
     timezone: "auto",
   });
@@ -188,6 +189,14 @@ function renderCurrent(place, forecast) {
   const precipValue = document.createElement("strong");
   precipValue.textContent = precip === null ? "—" : `${precip}%`;
   precipEl.append(precipValue);
+
+  // 降水量も同じく、現在の時間帯(1時間あたり)の予報を使う
+  const rainEl = document.getElementById("current-rain");
+  const rain = forecast.hourly.precipitation[0];
+  rainEl.replaceChildren("降水量 ");
+  const rainValue = document.createElement("strong");
+  rainValue.textContent = rain === null ? "—" : `${rain.toFixed(1)}${forecast.hourly_units.precipitation}`;
+  rainEl.append(rainValue, "(1時間あたり)");
 }
 
 function renderChart(forecast) {
@@ -311,6 +320,66 @@ function renderMap(place) {
   marker.bindPopup(place.name);
 }
 
+function renderRainChart(forecast) {
+  const times = forecast.hourly.time;
+  const rains = forecast.hourly.precipitation;
+  const unit = forecast.hourly_units.precipitation;
+
+  const total = rains.reduce((sum, r) => sum + (r || 0), 0);
+  const max = Math.max(0, ...rains.filter((r) => r !== null));
+  document.getElementById("rain-summary").textContent =
+    `48時間の合計 ${total.toFixed(1)}${unit} / 1時間の最大 ${max.toFixed(1)}${unit}`;
+
+  if (rainChart) {
+    rainChart.destroy();
+  }
+
+  rainChart = new Chart(document.getElementById("rain-chart"), {
+    type: "bar",
+    data: {
+      labels: times.map(formatChartLabel),
+      datasets: [
+        {
+          label: "降水量",
+          data: rains,
+          backgroundColor: "rgba(28, 100, 200, 0.75)",
+          barPercentage: 1,
+          categoryPercentage: 0.9,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const { month, day, time } = parseLocalTime(times[items[0].dataIndex]);
+              return `${month}月${day}日 ${time}`;
+            },
+            label: (item) => `降水量: ${item.parsed.y.toFixed(1)}${unit}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 9 },
+        },
+        y: {
+          min: 0,
+          // 雨がほとんど降らない日に、わずかな量が大雨のように見えないようにする
+          suggestedMax: 5,
+          ticks: { callback: (value) => `${value}${unit}` },
+        },
+      },
+    },
+  });
+}
+
 function handleError(err) {
   const message = err instanceof TypeError
     ? "通信に失敗しました。インターネット接続を確認してください。"
@@ -325,6 +394,7 @@ async function showPlaceWeather(place) {
   // 非表示のままだとグラフの大きさが正しく計算されないため、先に表示する
   resultEl.hidden = false;
   renderChart(forecast);
+  renderRainChart(forecast);
   renderMap(place);
   setStatus("");
   showWikiInfo(place);
