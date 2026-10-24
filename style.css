@@ -235,6 +235,34 @@ header h1 {
   border-radius: 8px;
 }
 
+.range-buttons {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid #c9d3dd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.range-button {
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.range-button + .range-button {
+  border-left: 1px solid #c9d3dd;
+}
+
+.range-button[aria-pressed="true"] {
+  color: #fff;
+  background: var(--accent);
+  font-weight: bold;
+}
+
 .detail-chart-wrap {
   height: 240px;
 }

@@ -7,7 +7,7 @@
   <!-- CDNのファイルが改ざんされていたら読み込まないよう、integrity に正しいファイルのハッシュ値を指定している -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"
           integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"
@@ -49,12 +49,18 @@
       </div>
 
       <div class="card chart-card">
-        <h3>今後48時間の気温・降水量・降水確率</h3>
+        <div class="card-header">
+          <h3 id="chart-title">今後48時間の気温・降水量・降水確率</h3>
+          <div class="range-buttons" role="group" aria-label="表示する期間">
+            <button type="button" class="range-button" data-hours="24" aria-pressed="false">24時間</button>
+            <button type="button" class="range-button" data-hours="48" aria-pressed="true">48時間</button>
+          </div>
+        </div>
         <div class="chart-wrap">
-          <canvas id="temp-chart" aria-label="今後48時間の気温と降水量のグラフ" role="img"></canvas>
+          <canvas id="temp-chart" aria-label="今後の気温と降水量のグラフ" role="img"></canvas>
         </div>
         <div class="strip-wrap">
-          <canvas id="probability-strip" aria-label="今後48時間の降水確率の帯" role="img"></canvas>
+          <canvas id="probability-strip" aria-label="今後の降水確率の帯" role="img"></canvas>
         </div>
         <p class="detail">下の帯:降水確率(青が濃いほど高い・数字は6時間ごとの最大)</p>
         <p id="minmax" class="detail"></p>
@@ -109,7 +115,7 @@
   </main>
 
   <!-- ファイルを更新したら ?v= の数字を上げる(ブラウザが古いファイルを使い続けないようにするため) -->
-  <script src="wiki.js?v=13"></script>
-  <script src="app.js?v=13"></script>
+  <script src="wiki.js?v=14"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>
