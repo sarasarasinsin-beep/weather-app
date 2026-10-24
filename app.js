@@ -493,7 +493,10 @@ function renderMap(place) {
     map.setView(center, zoom);
     marker.setLatLng(center);
   }
-  marker.bindPopup(place.name);
+  // 文字列を渡すとHTMLとして解釈されるため、地名は文字として入れた要素を渡す
+  const popup = document.createElement("span");
+  popup.textContent = place.name;
+  marker.bindPopup(popup);
 }
 
 function handleError(err) {
