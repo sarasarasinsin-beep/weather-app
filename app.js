@@ -44,6 +44,7 @@ const candidatesEl = document.getElementById("candidates");
 const candidatesTitleEl = document.getElementById("candidates-title");
 const candidateListEl = document.getElementById("candidate-list");
 const detailHoursEl = document.getElementById("detail-hours");
+const rangeButtons = document.querySelectorAll(".range-button");
 
 let chart = null;
 let detailChart = null;
@@ -380,11 +381,15 @@ function createWeatherChart({ chartId, stripId, times, labels, temps, rains, pro
   };
 }
 
-function renderChart(forecast) {
-  const times = forecast.hourly.time;
-  const temps = forecast.hourly.temperature_2m;
-  const probs = forecast.hourly.precipitation_probability;
-  const rains = forecast.hourly.precipitation;
+// 「24時間」「48時間」のボタンで選んだ範囲のグラフを描く
+function renderChart() {
+  if (!lastForecast) return;
+  const forecast = lastForecast;
+  const range = Number(document.querySelector(".range-button[aria-pressed='true']").dataset.hours);
+  const times = forecast.hourly.time.slice(0, range);
+  const temps = forecast.hourly.temperature_2m.slice(0, range);
+  const probs = forecast.hourly.precipitation_probability.slice(0, range);
+  const rains = forecast.hourly.precipitation.slice(0, range);
   const unit = forecast.hourly_units.temperature_2m;
   const rainUnit = forecast.hourly_units.precipitation;
 
@@ -398,7 +403,9 @@ function renderChart(forecast) {
     ? `合計降水量 ${totalRain.toFixed(1)}${rainUnit}`
     : "雨の予報はありません";
   document.getElementById("minmax").textContent =
-    `48時間の最高 ${max.toFixed(1)}${unit} / 最低 ${min.toFixed(1)}${unit} / 最大降水確率 ${maxProb} / ${rainText}`;
+    `${range}時間の最高 ${max.toFixed(1)}${unit} / 最低 ${min.toFixed(1)}${unit} / 最大降水確率 ${maxProb} / ${rainText}`;
+
+  document.getElementById("chart-title").textContent = `今後${range}時間の気温・降水量・降水確率`;
 
   if (chart) {
     chart.destroy();
@@ -512,8 +519,8 @@ async function showPlaceWeather(place) {
   renderCurrent(place, forecast);
   // 非表示のままだとグラフの大きさが正しく計算されないため、先に表示する
   resultEl.hidden = false;
-  renderChart(forecast);
   lastForecast = forecast;
+  renderChart();
   renderDetailChart();
   renderMap(place);
   setStatus("");
@@ -585,6 +592,15 @@ async function search(cityName, { autoSelect = false } = {}) {
 }
 
 detailHoursEl.addEventListener("change", renderDetailChart);
+
+for (const button of rangeButtons) {
+  button.addEventListener("click", () => {
+    for (const other of rangeButtons) {
+      other.setAttribute("aria-pressed", String(other === button));
+    }
+    renderChart();
+  });
+}
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
