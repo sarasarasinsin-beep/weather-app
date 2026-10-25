@@ -158,6 +158,34 @@ header h1 {
   box-shadow: 0 2px 10px rgba(31, 41, 51, 0.08);
 }
 
+.location-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.refresh-button {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--accent);
+  background: #fff;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.refresh-button:hover {
+  background: #e3eefc;
+}
+
+.refresh-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .current .location h2 {
   margin: 0;
   font-size: 1.5rem;
