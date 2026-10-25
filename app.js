@@ -45,10 +45,14 @@ const candidatesTitleEl = document.getElementById("candidates-title");
 const candidateListEl = document.getElementById("candidate-list");
 const detailHoursEl = document.getElementById("detail-hours");
 const rangeButtons = document.querySelectorAll(".range-button");
+const refreshButton = document.getElementById("refresh-button");
 
 let chart = null;
 let detailChart = null;
 let lastForecast = null;
+let currentPlace = null;
+// 検索・候補の選択・更新が重なったとき、最後に始めた取得の結果だけを表示するための番号
+let weatherRequestId = 0;
 let map = null;
 let marker = null;
 
@@ -518,8 +522,11 @@ function handleError(err) {
 }
 
 async function showPlaceWeather(place) {
+  const requestId = ++weatherRequestId;
   setStatus(`${place.name}の天気を取得しています…`);
   const forecast = await fetchForecast(place.latitude, place.longitude);
+  if (requestId !== weatherRequestId) return;
+  currentPlace = place;
   renderCurrent(place, forecast);
   // 非表示のままだとグラフの大きさが正しく計算されないため、先に表示する
   resultEl.hidden = false;
@@ -529,6 +536,33 @@ async function showPlaceWeather(place) {
   renderMap(place);
   setStatus("");
   showWikiInfo(place);
+}
+
+// 今表示している地点のまま、天気だけを最新の予報に取り直す。
+// 地図の位置やウィキペディアの情報、選んでいる表示期間はそのままにする
+async function refreshWeather() {
+  if (!currentPlace) return;
+  const place = currentPlace;
+  const requestId = ++weatherRequestId;
+  refreshButton.disabled = true;
+  refreshButton.textContent = "更新中…";
+  setStatus(`${place.name}の天気を更新しています…`);
+  try {
+    const forecast = await fetchForecast(place.latitude, place.longitude);
+    if (requestId !== weatherRequestId) return;
+    renderCurrent(place, forecast);
+    lastForecast = forecast;
+    renderChart();
+    renderDetailChart();
+    const now = new Date();
+    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, "0")}`;
+    setStatus(`最新の情報に更新しました(${time})`);
+  } catch (err) {
+    if (requestId === weatherRequestId) handleError(err);
+  } finally {
+    refreshButton.disabled = false;
+    refreshButton.textContent = "↻ 更新";
+  }
 }
 
 function renderCandidates(name, places) {
@@ -596,6 +630,7 @@ async function search(cityName, { autoSelect = false } = {}) {
 }
 
 detailHoursEl.addEventListener("change", renderDetailChart);
+refreshButton.addEventListener("click", refreshWeather);
 
 for (const button of rangeButtons) {
   button.addEventListener("click", () => {
