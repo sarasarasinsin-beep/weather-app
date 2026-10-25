@@ -448,7 +448,10 @@ function renderDetailChart() {
   const end = startIndex + hours * 4 + 1;
   const times = minutely.time.slice(startIndex, end);
   const temps = minutely.temperature_2m.slice(startIndex, end);
+  // Open-Meteo の15分ごとの降水量は「その時刻までの15分間に降る量」。
+  // 48時間のグラフや一般的な天気予報と比べやすいよう、4倍して1時間あたりの強さ(mm/h)にして表示する
   const rains = minutely.precipitation.slice(startIndex, end);
+  const hourlyRates = rains.map((r) => (r === null ? null : r * 4));
   const probs = times.map((t) => {
     const index = forecast.hourly.time.indexOf(`${t.slice(0, 13)}:00`);
     return index === -1 ? null : forecast.hourly.precipitation_probability[index];
@@ -456,7 +459,8 @@ function renderDetailChart() {
   const unit = forecast.minutely_15_units.temperature_2m;
   const rainUnit = forecast.minutely_15_units.precipitation;
 
-  const totalRain = rains.reduce((sum, r) => sum + (r || 0), 0);
+  // 合計は換算前の実際の量で出す。先頭の値は現在時刻までの15分間(過去)の量なので含めない
+  const totalRain = rains.slice(1).reduce((sum, r) => sum + (r || 0), 0);
   noteEl.textContent = totalRain > 0
     ? `直近${hours}時間の合計降水量 ${totalRain.toFixed(1)}${rainUnit}`
     : `直近${hours}時間は雨の予報はありません`;
@@ -467,11 +471,11 @@ function renderDetailChart() {
     times,
     labels: times.map((t) => parseLocalTime(t).time),
     temps,
-    rains,
+    rains: hourlyRates,
     probs,
     unit,
-    rainUnit,
-    rainLabel: "降水量(15分ごと)",
+    rainUnit: `${rainUnit}/h`,
+    rainLabel: "降水量(1時間あたりに換算)",
     labelGroups: times.map((t) => t.slice(0, 13)),
   });
 }
