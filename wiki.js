@@ -17,7 +17,7 @@ function wikiUrl(title) {
 
 async function wikiQuery(params) {
   const query = new URLSearchParams({ format: "json", formatversion: "2", origin: "*", ...params });
-  const res = await fetch(`${WIKI_API_URL}?${query}`);
+  const res = await fetchWithTimeout(`${WIKI_API_URL}?${query}`);
   if (!res.ok) {
     throw new Error(`ウィキペディアの取得に失敗しました(HTTP ${res.status})`);
   }

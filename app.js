@@ -61,8 +61,30 @@ function setStatus(message, isError = false) {
   statusEl.classList.toggle("error", isError);
 }
 
+// 通信が途中で詰まると fetch は返事を待ち続けるため、一定時間で打ち切ってエラーにする
+// (wiki.js からも使う)
+const FETCH_TIMEOUT_MS = 15000;
+
+async function fetchWithTimeout(url) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      throw new Error("サービスから応答がありませんでした。時間をおいて、ページの再読み込みか「↻ 更新」をお試しください。");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchJson(url) {
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
+  if (res.status === 429) {
+    throw new Error("天気サービスへのアクセスが集中しています(HTTP 429)。しばらく時間をおいてからお試しください。");
+  }
   if (!res.ok) {
     throw new Error(`通信エラーが発生しました(HTTP ${res.status})`);
   }
